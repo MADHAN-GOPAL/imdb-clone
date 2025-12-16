@@ -1,23 +1,39 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# production
-/build
-
-# misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+const MovieCard = ({ poster, title, year, rating }) => {
+  return (
+    <div className="bg-gray-900 text-white rounded-2xl shadow-lg overflow-hidden w-64 hover:scale-105 transition-transform duration-300"
+      <img
+        src={poster}
+        alt={title}
+        className="w-full h-80 object-cover"
+      />
+      <div className="p-4">
+        <h2 className="text-lg font-semibold truncate">{title}</h2>
+        <p className="text-sm text-gray-400">Release Year: {year}</p>
+        <p className="mt-2 text-yellow-400 font-medium">⭐ {rating}</p>
+      </div>
+    </div>
+  )  
+};                                         
+const sampleMovies = [
+  {
+    id: 1,
+    title: "Inception",
+    year: 2010,
+    rating: 8.8,
+    poster: "https://m.media-amazon.com/images/I/51s+0NwlpFL._AC_.jpg",
+},
+{
+    id: 2,
+    title: "Interstellar",
+    year: 2014,
+    rating: 8.6,
+    poster: "https://m.media-amazon.com/images/I/71n58bGmHBL._AC_SY679_.jpg",
+},
+{
+    id: 3,
+    title: "The Dark Knight",
+    year: 2008,
+    rating: 9.0,
+    poster: "https://m.media-amazon.com/images/I/51EbJjlLgEL._AC_.jpg",
+},
+];
