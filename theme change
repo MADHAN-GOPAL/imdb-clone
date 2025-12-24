@@ -1,0 +1,74 @@
+import React, { createContext, useContext, useEffect, useState } from "react";
+
+/* =======================
+   Theme Context
+======================= */
+const ThemeContext = createContext();
+
+const ThemeProvider = ({ children }) => {
+  const [theme, setTheme] = useState(
+    localStorage.getItem("theme") || "light"
+  );
+
+  useEffect(() => {
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === "light" ? "dark" : "light"));
+  };
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+/* =======================
+   Main App
+======================= */
+const AppContent = () => {
+  const { theme, toggleTheme } = useContext(ThemeContext);
+
+  const styles = {
+    container: {
+      height: "100vh",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: theme === "light" ? "#ffffff" : "#121212",
+      color: theme === "light" ? "#000000" : "#ffffff",
+      transition: "all 0.4s ease"
+    },
+    button: {
+      padding: "10px 20px",
+      fontSize: "16px",
+      borderRadius: "6px",
+      border: "none",
+      cursor: "pointer"
+    }
+  };
+
+  return (
+    <div style={styles.container}>
+      <h1>Theme Switcher App</h1>
+      <p>Using React Context API</p>
+      <button style={styles.button} onClick={toggleTheme}>
+        {theme === "light" ? "🌙 Dark Mode" : "☀️ Light Mode"}
+      </button>
+    </div>
+  );
+};
+
+/* =======================
+   Export App
+======================= */
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  );
+}
