@@ -1,0 +1,73 @@
+import { useEffect, useState } from "react";
+
+export default function App() {
+  const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  const LIMIT = 10;
+
+  useEffect(() => {
+    fetchItems();
+  }, [page]);
+
+  const fetchItems = async () => {
+    setLoading(true);
+
+    // Simulated API call
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    const newItems = Array.from({ length: LIMIT }, (_, i) => ({
+      id: (page - 1) * LIMIT + i + 1,
+      title: `Item ${(page - 1) * LIMIT + i + 1}`,
+    }));
+
+    setItems((prev) => [...prev, ...newItems]);
+
+    if (newItems.length < LIMIT) {
+      setHasMore(false);
+    }
+
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ padding: "20px", maxWidth: "600px", margin: "auto" }}>
+      <h2>Home / Search Results</h2>
+
+      <div style={{ scrollBehavior: "smooth" }}>
+        {items.map((item) => (
+          <div
+            key={item.id}
+            style={{
+              padding: "12px",
+              marginBottom: "8px",
+              border: "1px solid #ddd",
+              borderRadius: "6px",
+            }}
+          >
+            {item.title}
+          </div>
+        ))}
+      </div>
+
+      {loading && <p>Loading...</p>}
+
+      {hasMore && !loading && (
+        <button
+          onClick={() => setPage((prev) => prev + 1)}
+          style={{
+            padding: "10px 16px",
+            marginTop: "12px",
+            cursor: "pointer",
+          }}
+        >
+          Load More
+        </button>
+      )}
+
+      {!hasMore && <p>No more results</p>}
+    </div>
+  );
+}
