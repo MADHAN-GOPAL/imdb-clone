@@ -1,0 +1,222 @@
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useParams
+} from "react-router-dom";
+import { useEffect, useState } from "react";
+
+/* ================== UTILITIES ================== */
+const getFavorites = () =>
+  JSON.parse(localStorage.getItem("favorites")) || [];
+
+const saveFavorites = (data) =>
+  localStorage.setItem("favorites", JSON.stringify(data));
+
+/* ================== REUSABLE LOADER ================== */
+function Loader({ text = "Loading..." }) {
+  return (
+    <div style={{ padding: 30, textAlign: "center" }}>
+      <div style={{
+        width: 40,
+        height: 40,
+        border: "4px solid #ccc",
+        borderTop: "4px solid #000",
+        borderRadius: "50%",
+        margin: "0 auto",
+        animation: "spin 1s linear infinite"
+      }} />
+      <p>{text}</p>
+
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* ================== SAMPLE MOVIES ================== */
+const movies = [
+  {
+    id: "tt4154796",
+    title: "Avengers: Endgame",
+    poster: "https://m.media-amazon.com/images/I/81ExhpBEbHL._AC_SL1500_.jpg"
+  },
+  {
+    id: "tt1375666",
+    title: "Inception",
+    poster: "https://m.media-amazon.com/images/I/51s+qBzU6JL._AC_.jpg"
+  }
+];
+
+/* ================== MOVIE LIST ================== */
+function MovieList() {
+  const [favorites, setFavorites] = useState(getFavorites());
+
+  if (movies.length === 0) {
+    return <p>No movies available.</p>;
+  }
+
+  const toggleFavorite = (movie) => {
+    const updated = favorites.find(f => f.id === movie.id)
+      ? favorites.filter(f => f.id !== movie.id)
+      : [...favorites, movie];
+
+    setFavorites(updated);
+    saveFavorites(updated);
+  };
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Movies</h2>
+      <Link to="/favorites">❤️ Favorites</Link>
+
+      <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
+        {movies.map(movie => (
+          <div key={movie.id} style={{ width: 200 }}>
+            <Link to={`/movie/${movie.id}`}>
+              <img src={movie.poster} width="100%" />
+            </Link>
+            <h4>{movie.title}</h4>
+            <button onClick={() => toggleFavorite(movie)}>
+              {favorites.find(f => f.id === movie.id)
+                ? "💔 Remove"
+                : "❤️ Add"}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ================== MOVIE DETAILS ================== */
+function MovieDetails() {
+  const { id } = useParams();
+  const [movie, setMovie] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [favorites, setFavorites] = useState(getFavorites());
+
+  const fetchMovie = () => {
+    setLoading(true);
+    setError("");
+
+    fetch(`https://www.omdbapi.com/?i=${id}&apikey=YOUR_OMDB_API_KEY`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.Response === "False") {
+          throw new Error(data.Error);
+        }
+        setMovie(data);
+      })
+      .catch(err => {
+        setError(err.message || "Failed to load movie");
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchMovie();
+  }, [id]);
+
+  const toggleFavorite = () => {
+    const updated = favorites.find(f => f.id === movie.imdbID)
+      ? favorites.filter(f => f.id !== movie.imdbID)
+      : [...favorites, { id: movie.imdbID, title: movie.Title, poster: movie.Poster }];
+
+    setFavorites(updated);
+    saveFavorites(updated);
+  };
+
+  if (loading) return <Loader text="Fetching movie details..." />;
+
+  if (error) {
+    return (
+      <div style={{ padding: 20 }}>
+        <p>⚠️ {error}</p>
+        <button onClick={fetchMovie}>🔄 Retry</button>
+        <br /><br />
+        <Link to="/">⬅ Back</Link>
+      </div>
+    );
+  }
+
+  if (!movie) {
+    return <p>No movie data available.</p>;
+  }
+
+  return (
+    <div style={{ padding: 20 }}>
+      <img src={movie.Poster} width="300" />
+      <h1>{movie.Title}</h1>
+      <p><b>Genre:</b> {movie.Genre}</p>
+      <p><b>Cast:</b> {movie.Actors}</p>
+      <p><b>Plot:</b> {movie.Plot}</p>
+      <p><b>Rating:</b> ⭐ {movie.imdbRating}</p>
+
+      <button onClick={toggleFavorite}>
+        {favorites.find(f => f.id === movie.imdbID)
+          ? "💔 Remove Favorite"
+          : "❤️ Add Favorite"}
+      </button>
+
+      <br /><br />
+      <Link to="/">⬅ Back</Link>
+    </div>
+  );
+}
+
+/* ================== FAVORITES PAGE ================== */
+function Favorites() {
+  const [favorites, setFavorites] = useState(getFavorites());
+
+  if (favorites.length === 0) {
+    return (
+      <div style={{ padding: 20 }}>
+        <h2>❤️ Favorites</h2>
+        <p>No favorites yet. Add some movies!</p>
+        <Link to="/">⬅ Browse Movies</Link>
+      </div>
+    );
+  }
+
+  const removeFavorite = (id) => {
+    const updated = favorites.filter(f => f.id !== id);
+    setFavorites(updated);
+    saveFavorites(updated);
+  };
+
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>❤️ Favorites</h2>
+      <Link to="/">⬅ Back</Link>
+
+      <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
+        {favorites.map(movie => (
+          <div key={movie.id} style={{ width: 200 }}>
+            <img src={movie.poster} width="100%" />
+            <h4>{movie.title}</h4>
+            <button onClick={() => removeFavorite(movie.id)}>💔 Remove</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ================== APP ================== */
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<MovieList />} />
+        <Route path="/movie/:id" element={<MovieDetails />} />
+        <Route path="/favorites" element={<Favorites />} />
+      </Routes>
+    </Router>
+  );
+}
