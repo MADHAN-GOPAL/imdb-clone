@@ -1,0 +1,204 @@
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useParams
+} from "react-router-dom";
+import { useEffect, useState } from "react";
+
+/* ================== UTILS ================== */
+const getFavorites = () =>
+  JSON.parse(localStorage.getItem("favorites")) || [];
+
+const saveFavorites = (data) =>
+  localStorage.setItem("favorites", JSON.stringify(data));
+
+/* ================== LOADER ================== */
+function Loader() {
+  return (
+    <div className="flex justify-center items-center h-64">
+      <div className="h-10 w-10 border-4 border-gray-300 border-t-black dark:border-t-white rounded-full animate-spin" />
+    </div>
+  );
+}
+
+/* ================== MOVIES ================== */
+const movies = [
+  {
+    id: "tt4154796",
+    title: "Avengers: Endgame",
+    poster: "https://m.media-amazon.com/images/I/81ExhpBEbHL._AC_SL1500_.jpg"
+  },
+  {
+    id: "tt1375666",
+    title: "Inception",
+    poster: "https://m.media-amazon.com/images/I/51s+qBzU6JL._AC_.jpg"
+  }
+];
+
+/* ================== HEADER ================== */
+function Header({ darkMode, setDarkMode }) {
+  return (
+    <header className="flex justify-between items-center p-4 shadow-md dark:shadow-gray-800">
+      <Link to="/" className="text-xl font-bold">
+        🎬 MovieApp
+      </Link>
+
+      <div className="flex gap-4 items-center">
+        <Link to="/favorites">❤️ Favorites</Link>
+
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 transition"
+        >
+          {darkMode ? "☀️ Light" : "🌙 Dark"}
+        </button>
+      </div>
+    </header>
+  );
+}
+
+/* ================== MOVIE LIST ================== */
+function MovieList() {
+  const [favorites, setFavorites] = useState(getFavorites());
+
+  const toggleFavorite = (movie) => {
+    const updated = favorites.find(f => f.id === movie.id)
+      ? favorites.filter(f => f.id !== movie.id)
+      : [...favorites, movie];
+
+    setFavorites(updated);
+    saveFavorites(updated);
+  };
+
+  if (movies.length === 0) {
+    return <p className="text-center mt-10">No movies available</p>;
+  }
+
+  return (
+    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {movies.map(movie => (
+        <div
+          key={movie.id}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1"
+        >
+          <Link to={`/movie/${movie.id}`}>
+            <img
+              src={movie.poster}
+              className="rounded-t-xl h-72 w-full object-cover"
+            />
+          </Link>
+
+          <div className="p-4">
+            <h3 className="font-semibold">{movie.title}</h3>
+
+            <button
+              onClick={() => toggleFavorite(movie)}
+              className="mt-2 w-full py-1 rounded bg-red-500 text-white hover:bg-red-600 transition"
+            >
+              {favorites.find(f => f.id === movie.id)
+                ? "💔 Remove"
+                : "❤️ Favorite"}
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ================== MOVIE DETAILS ================== */
+function MovieDetails() {
+  const { id } = useParams();
+  const [movie, setMovie] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch(`https://www.omdbapi.com/?i=${id}&apikey=YOUR_OMDB_API_KEY`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.Response === "False") throw new Error(data.Error);
+        setMovie(data);
+      })
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) return <Loader />;
+
+  if (error)
+    return <p className="text-center text-red-500 mt-10">{error}</p>;
+
+  return (
+    <div className="p-6 flex flex-col md:flex-row gap-8">
+      <img
+        src={movie.Poster}
+        className="w-full md:w-1/3 rounded-xl shadow-lg"
+      />
+
+      <div>
+        <h1 className="text-3xl font-bold mb-4">{movie.Title}</h1>
+        <p><b>Genre:</b> {movie.Genre}</p>
+        <p><b>Cast:</b> {movie.Actors}</p>
+        <p className="mt-3"><b>Plot:</b> {movie.Plot}</p>
+        <p className="mt-2"><b>Rating:</b> ⭐ {movie.imdbRating}</p>
+
+        <Link
+          to="/"
+          className="inline-block mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded transition"
+        >
+          ⬅ Back
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/* ================== FAVORITES ================== */
+function Favorites() {
+  const [favorites, setFavorites] = useState(getFavorites());
+
+  if (favorites.length === 0) {
+    return (
+      <p className="text-center mt-10">
+        No favorites yet ❤️
+      </p>
+    );
+  }
+
+  return (
+    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      {favorites.map(movie => (
+        <div
+          key={movie.id}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4"
+        >
+          <img src={movie.poster} className="rounded mb-2" />
+          <h3>{movie.title}</h3>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ================== APP ================== */
+export default function App() {
+  const [darkMode, setDarkMode] = useState(false);
+
+  return (
+    <div className={darkMode ? "dark" : ""}>
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-black dark:text-white transition">
+        <Router>
+          <Header darkMode={darkMode} setDarkMode={setDarkMode} />
+          <Routes>
+            <Route path="/" element={<MovieList />} />
+            <Route path="/movie/:id" element={<MovieDetails />} />
+            <Route path="/favorites" element={<Favorites />} />
+          </Routes>
+        </Router>
+      </div>
+    </div>
+  );
+}
