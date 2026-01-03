@@ -1,0 +1,86 @@
+import { BrowserRouter as Router, Routes, Route, Link, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+
+/* 🔹 Sample movie list */
+const movies = [
+  {
+    id: "tt4154796",
+    title: "Avengers: Endgame",
+    poster: "https://m.media-amazon.com/images/I/81ExhpBEbHL._AC_SL1500_.jpg"
+  },
+  {
+    id: "tt1375666",
+    title: "Inception",
+    poster: "https://m.media-amazon.com/images/I/51s+qBzU6JL._AC_.jpg"
+  }
+];
+
+/* 🔹 Movie List Page */
+function MovieList() {
+  return (
+    <div style={{ display: "flex", gap: "20px", padding: "20px" }}>
+      {movies.map(movie => (
+        <Link
+          key={movie.id}
+          to={`/movie/${movie.id}`}
+          style={{ textDecoration: "none", color: "black" }}
+        >
+          <div style={{ width: "200px" }}>
+            <img src={movie.poster} width="100%" />
+            <h3>{movie.title}</h3>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+/* 🔹 Movie Details Page */
+function MovieDetails() {
+  const { id } = useParams();
+  const [movie, setMovie] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+
+    fetch(`https://www.omdbapi.com/?i=${id}&apikey=YOUR_OMDB_API_KEY`)
+      .then(res => res.json())
+      .then(data => {
+        setMovie(data);
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) {
+    return <h2 style={{ padding: "20px" }}>Loading movie details...</h2>;
+  }
+
+  return (
+    <div style={{ padding: "20px", display: "flex", gap: "20px" }}>
+      <img src={movie.Poster} width="300" />
+
+      <div>
+        <h1>{movie.Title}</h1>
+        <p><b>Genre:</b> {movie.Genre}</p>
+        <p><b>Cast:</b> {movie.Actors}</p>
+        <p><b>Plot:</b> {movie.Plot}</p>
+        <p><b>IMDB Rating:</b> ⭐ {movie.imdbRating}</p>
+
+        <Link to="/">⬅ Back to Movies</Link>
+      </div>
+    </div>
+  );
+}
+
+/* 🔹 Main App */
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<MovieList />} />
+        <Route path="/movie/:id" element={<MovieDetails />} />
+      </Routes>
+    </Router>
+  );
+}
