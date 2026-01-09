@@ -1,0 +1,152 @@
+import React, { useState, useEffect } from "react";
+import { auth, db } from "./firebaseConfig";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "firebase/auth";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  deleteDoc,
+  doc
+} from "firebase/firestore";
+
+export default function WatchlistApp() {
+  const [user, setUser] = useState(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [watchlist, setWatchlist] = useState([]);
+  const [movieInput, setMovieInput] = useState("");
+
+  // Track user auth state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      if (u) fetchWatchlist(u.uid);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Fetch watchlist from Firestore
+  const fetchWatchlist = async (uid) => {
+    const q = query(collection(db, "watchlists"), where("userId", "==", uid));
+    const snapshot = await getDocs(q);
+    setWatchlist(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+  };
+
+  // Add movie to watchlist
+  const addMovie = async (movieName) => {
+    if (!movieName || !user) return;
+    // Prevent duplicates
+    if (watchlist.find(m => m.movie.toLowerCase() === movieName.toLowerCase())) {
+      alert("Already in your watchlist!");
+      return;
+    }
+    await addDoc(collection(db, "watchlists"), {
+      userId: user.uid,
+      movie: movieName,
+      addedAt: new Date()
+    });
+    fetchWatchlist(user.uid);
+    setMovieInput("");
+  };
+
+  // Remove movie from watchlist
+  const removeMovie = async (id) => {
+    await deleteDoc(doc(db, "watchlists", id));
+    fetchWatchlist(user.uid);
+  };
+
+  // Auth functions
+  const handleLogin = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleRegister = async () => {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleLogout = () => signOut(auth);
+
+  return (
+    <div style={{ fontFamily: "Arial", maxWidth: 600, margin: "20px auto" }}>
+      {/* Navbar */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+        <h2>My Watchlist</h2>
+        {user && (
+          <div>
+            <span style={{ marginRight: 10 }}>Hello, {user.email}</span>
+            <button onClick={handleLogout}>Logout</button>
+          </div>
+        )}
+      </div>
+
+      {/* Auth */}
+      {!user && (
+        <div style={{ marginBottom: 20 }}>
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            style={{ marginRight: 5 }}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            style={{ marginRight: 5 }}
+          />
+          <button onClick={handleLogin}>Login</button>
+          <button onClick={handleRegister} style={{ marginLeft: 5 }}>Register</button>
+        </div>
+      )}
+
+      {/* Watchlist */}
+      {user && (
+        <div>
+          <div style={{ marginBottom: 10 }}>
+            <input
+              placeholder="Add a movie..."
+              value={movieInput}
+              onChange={e => setMovieInput(e.target.value)}
+              style={{ marginRight: 5 }}
+            />
+            <button onClick={() => addMovie(movieInput)}>Add</button>
+          </div>
+
+          {watchlist.length === 0 ? (
+            <p>No movies in your watchlist</p>
+          ) : (
+            <ul>
+              {watchlist.map(item => (
+                <li key={item.id} style={{ marginBottom: 5 }}>
+                  {item.movie} —{" "}
+                  <small>{new Date(item.addedAt.seconds * 1000).toLocaleString()}</small>{" "}
+                  <button onClick={() => removeMovie(item.id)} style={{ marginLeft: 5 }}>
+                    Remove
+                  </button>
+                  <span style={{ marginLeft: 10, color: "green" }}>Added to Watchlist</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
