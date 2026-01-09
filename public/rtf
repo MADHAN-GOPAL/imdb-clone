@@ -1,0 +1,112 @@
+import React, { useState, useEffect } from "react";
+
+// Mock movie data
+const mockMovies = [
+  { id: 1, title: "Inception", genre: "Action", rating: 8.8, year: 2010, popularity: 95 },
+  { id: 2, title: "Interstellar", genre: "Sci-Fi", rating: 8.6, year: 2014, popularity: 90 },
+  { id: 3, title: "The Dark Knight", genre: "Action", rating: 9.0, year: 2008, popularity: 100 },
+  { id: 4, title: "Tenet", genre: "Action", rating: 7.5, year: 2020, popularity: 80 },
+  { id: 5, title: "Dune", genre: "Sci-Fi", rating: 8.2, year: 2021, popularity: 85 },
+  { id: 6, title: "The Irishman", genre: "Drama", rating: 7.8, year: 2019, popularity: 70 },
+];
+
+export default function MovieFilterSort() {
+  const [movies, setMovies] = useState([]);
+  const [filteredMovies, setFilteredMovies] = useState([]);
+
+  // Filter states
+  const [selectedGenres, setSelectedGenres] = useState([]);
+  const [yearRange, setYearRange] = useState({ min: 2000, max: 2024 });
+  const [sortOption, setSortOption] = useState("popularity"); // "popularity", "newest", "rating"
+
+  // Load movies
+  useEffect(() => {
+    setMovies(mockMovies);
+    setFilteredMovies(mockMovies);
+  }, []);
+
+  // Handle filtering
+  useEffect(() => {
+    let temp = movies.filter(m => 
+      (selectedGenres.length === 0 || selectedGenres.includes(m.genre)) &&
+      m.year >= yearRange.min &&
+      m.year <= yearRange.max
+    );
+
+    // Handle sorting
+    if (sortOption === "popularity") temp.sort((a, b) => b.popularity - a.popularity);
+    if (sortOption === "newest") temp.sort((a, b) => b.year - a.year);
+    if (sortOption === "rating") temp.sort((a, b) => b.rating - a.rating);
+
+    setFilteredMovies(temp);
+  }, [selectedGenres, yearRange, sortOption, movies]);
+
+  // Handle genre checkbox
+  const toggleGenre = (genre) => {
+    setSelectedGenres(prev => 
+      prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]
+    );
+  };
+
+  return (
+    <div style={{ maxWidth: 700, margin: "20px auto", fontFamily: "Arial" }}>
+      <h2>Movie Browser</h2>
+
+      {/* Filters */}
+      <div style={{ marginBottom: 20 }}>
+        <strong>Filter by Genre:</strong>
+        {["Action", "Sci-Fi", "Drama"].map(genre => (
+          <label key={genre} style={{ marginLeft: 10 }}>
+            <input
+              type="checkbox"
+              checked={selectedGenres.includes(genre)}
+              onChange={() => toggleGenre(genre)}
+            />{" "}
+            {genre}
+          </label>
+        ))}
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <strong>Filter by Year:</strong>{" "}
+        <input
+          type="number"
+          value={yearRange.min}
+          onChange={e => setYearRange({ ...yearRange, min: Number(e.target.value) })}
+          style={{ width: 60, marginRight: 5 }}
+        />
+        -
+        <input
+          type="number"
+          value={yearRange.max}
+          onChange={e => setYearRange({ ...yearRange, max: Number(e.target.value) })}
+          style={{ width: 60, marginLeft: 5 }}
+        />
+      </div>
+
+      {/* Sorting */}
+      <div style={{ marginBottom: 20 }}>
+        <strong>Sort by:</strong>{" "}
+        <select value={sortOption} onChange={e => setSortOption(e.target.value)}>
+          <option value="popularity">Popularity</option>
+          <option value="newest">Newest</option>
+          <option value="rating">Highest Rating</option>
+        </select>
+      </div>
+
+      {/* Movie List */}
+      <h3>Movies ({filteredMovies.length})</h3>
+      {filteredMovies.length === 0 ? (
+        <p>No movies match the selected filters.</p>
+      ) : (
+        <ul>
+          {filteredMovies.map(m => (
+            <li key={m.id} style={{ marginBottom: 10 }}>
+              <strong>{m.title}</strong> ({m.year}) — {m.genre} — Rating: {m.rating} — Popularity: {m.popularity}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
