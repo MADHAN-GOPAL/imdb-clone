@@ -1,0 +1,123 @@
+import { initializeApp } from "firebase/app";
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
+
+// 🔧 Firebase Config (replace with your keys)
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+export default function WatchlistApp() {
+  const [user, setUser] = useState(null);
+  const [watchlist, setWatchlist] = useState([]);
+  const movies = [
+    { id: 1, title: "Inception", genre: "Sci-Fi", year: 2010, rating: 8.8, popularity: 95 },
+    { id: 2, title: "Interstellar", genre: "Sci-Fi", year: 2014, rating: 8.6, popularity: 92 },
+    { id: 3, title: "Avengers", genre: "Action", year: 2012, rating: 8.0, popularity: 98 },
+    { id: 4, title: "John Wick", genre: "Action", year: 2019, rating: 7.9, popularity: 90 },
+    { id: 5, title: "Parasite", genre: "Thriller", year: 2020, rating: 8.5, popularity: 85 },
+  ];
+
+  const [genreFilter, setGenreFilter] = useState("All");
+  const [yearRange, setYearRange] = useState("All");
+  const [sortBy, setSortBy] = useState("popularity");
+
+  const filteredMovies = movies
+    .filter((m) => genreFilter === "All" || m.genre === genreFilter)
+    .filter((m) => {
+      if (yearRange === "All") return true;
+      if (yearRange === "2020-2024") return m.year >= 2020 && m.year <= 2024;
+      if (yearRange === "2015-2019") return m.year >= 2015 && m.year <= 2019;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "rating") return b.rating - a.rating;
+      if (sortBy === "newest") return b.year - a.year;
+      return b.popularity - a.popularity;
+    });
+
+  // 🔑 Login with Google
+  const login = async () => {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  };
+
+  // 👤 Detect User & Load Watchlist
+  useEffect(() => {
+    return onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      if (u) {
+        const ref = doc(db, "watchlists", u.uid);
+        const snap = await getDoc(ref);
+        if (snap.exists()) setWatchlist(snap.data().items);
+        else await setDoc(ref, { items: [] });
+      }
+    });
+  }, []);
+
+  // ➕ Add/Remove Watchlist
+  const toggleWatchlist = async (movie) => {
+    if (!user) return alert("Login first");
+    const ref = doc(db, "watchlists", user.uid);
+    let updated;
+    if (watchlist.find((m) => m.id === movie.id))
+      updated = watchlist.filter((m) => m.id !== movie.id);
+    else updated = [...watchlist, movie];
+    setWatchlist(updated);
+    await updateDoc(ref, { items: updated });
+  };
+
+  return (
+    <div className="p-4">
+      <h1 className="text-xl font-bold">🎬 Cloud Watchlist</h1>
+      {!user ? (
+        <button onClick={login}>Login</button>
+      ) : (
+        <p>Welcome, {user.displayName}</p>
+      )}
+      <div className="mt-4 p-2 border rounded">
+        <div className="flex gap-4 mb-3">
+          <select onChange={(e) => setGenreFilter(e.target.value)}>
+            <option>All</option>
+            <option>Action</option>
+            <option>Sci-Fi</option>
+            <option>Thriller</option>
+          </select>
+
+          <select onChange={(e) => setYearRange(e.target.value)}>
+            <option value="All">All Years</option>
+            <option value="2020-2024">2020–2024</option>
+            <option value="2015-2019">2015–2019</option>
+          </select>
+
+          <select onChange={(e) => setSortBy(e.target.value)}>
+            <option value="popularity">Most Popular</option>
+            <option value="newest">Newest</option>
+            <option value="rating">Highest Rated</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        {filteredMovies.map((m) => {
+          const added = watchlist.some((w) => w.id === m.id);
+          return (
+            <div key={m.id} className="flex justify-between p-2 border">
+              <span>{m.title}</span>
+              <button onClick={() => toggleWatchlist(m)}>
+                {added ? "✅ Added to Watchlist" : "➕ Add to Watchlist"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
