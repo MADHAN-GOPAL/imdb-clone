@@ -1,0 +1,80 @@
+import { initializeApp } from "firebase/app";
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
+
+// 🔧 Firebase Config (replace with your keys)
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+export default function WatchlistApp() {
+  const [user, setUser] = useState(null);
+  const [watchlist, setWatchlist] = useState([]);
+  const movies = [
+    { id: 1, title: "Inception" },
+    { id: 2, title: "Interstellar" },
+    { id: 3, title: "Avengers" },
+  ];
+
+  // 🔑 Login with Google
+  const login = async () => {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  };
+
+  // 👤 Detect User & Load Watchlist
+  useEffect(() => {
+    return onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      if (u) {
+        const ref = doc(db, "watchlists", u.uid);
+        const snap = await getDoc(ref);
+        if (snap.exists()) setWatchlist(snap.data().items);
+        else await setDoc(ref, { items: [] });
+      }
+    });
+  }, []);
+
+  // ➕ Add/Remove Watchlist
+  const toggleWatchlist = async (movie) => {
+    if (!user) return alert("Login first");
+    const ref = doc(db, "watchlists", user.uid);
+    let updated;
+    if (watchlist.find((m) => m.id === movie.id))
+      updated = watchlist.filter((m) => m.id !== movie.id);
+    else updated = [...watchlist, movie];
+    setWatchlist(updated);
+    await updateDoc(ref, { items: updated });
+  };
+
+  return (
+    <div className="p-4">
+      <h1 className="text-xl font-bold">🎬 Cloud Watchlist</h1>
+      {!user ? (
+        <button onClick={login}>Login</button>
+      ) : (
+        <p>Welcome, {user.displayName}</p>
+      )}
+      <div className="mt-4">
+        {movies.map((m) => {
+          const added = watchlist.some((w) => w.id === m.id);
+          return (
+            <div key={m.id} className="flex justify-between p-2 border">
+              <span>{m.title}</span>
+              <button onClick={() => toggleWatchlist(m)}>
+                {added ? "✅ Added to Watchlist" : "➕ Add to Watchlist"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
