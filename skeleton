@@ -1,0 +1,140 @@
+import { useEffect, useState } from "react";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
+
+export default function App() {
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setMovies([
+        {
+          id: 1,
+          title: "Interstellar",
+          year: "2014",
+          poster: "https://m.media-amazon.com/images/I/71n58Ww4zBL._AC_SL1024_.jpg",
+        },
+        {
+          id: 2,
+          title: "Inception",
+          year: "2010",
+          poster: "https://m.media-amazon.com/images/I/91Rc8cAmnAL._AC_SL1500_.jpg",
+        },
+        {
+          id: 3,
+          title: "Joker",
+          year: "2019",
+          poster: "https://m.media-amazon.com/images/I/71p5Pqfch6L._AC_SL1178_.jpg",
+        },
+        {
+          id: 4,
+          title: "Avatar",
+          year: "2009",
+          poster: "https://m.media-amazon.com/images/I/61OUGpUfAyL._AC_SL1024_.jpg",
+        },
+      ]);
+      setLoading(false);
+    }, 2000);
+  }, []);
+
+  return (
+    <>
+      <style>{css}</style>
+      <div className="app">
+        <h1>🎬 Movie App</h1>
+        <div className="grid">
+          {loading
+            ? Array(8)
+                .fill(0)
+                .map((_, i) => (
+                  <div className="movie-card" key={i}>
+                    <Skeleton height={220} borderRadius={12} />
+                    <Skeleton height={18} style={{ marginTop: 10 }} />
+                    <Skeleton width="60%" />
+                  </div>
+                ))
+            : movies.map((m) => <MovieCard key={m.id} movie={m} />)}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function MovieCard({ movie }) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <div className="movie-card">
+      <div className="image-wrapper">
+        {!loaded && <div className="shimmer" />}
+        <img
+          src={movie.poster}
+          alt={movie.title}
+          loading="lazy"
+          onLoad={() => setLoaded(true)}
+          className={`poster ${loaded ? "show" : "hide"}`}
+        />
+      </div>
+      <h3>{movie.title}</h3>
+      <p>{movie.year}</p>
+    </div>
+  );
+}
+
+const css = `
+body {
+  margin: 0;
+  background: #0d0d0d;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+.app { padding: 20px; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 15px;
+}
+.movie-card {
+  background: #141414;
+  padding: 10px;
+  border-radius: 12px;
+}
+.movie-card h3 {
+  margin: 8px 0 4px;
+  font-size: 16px;
+}
+.movie-card p {
+  margin: 0;
+  color: #aaa;
+  font-size: 14px;
+}
+.image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+.poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.poster.hide { opacity: 0; transform: scale(1.05); }
+.poster.show { opacity: 1; transform: scale(1); }
+
+/* Shimmer */
+.shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,#222 25%,#333 37%,#222 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+`;
